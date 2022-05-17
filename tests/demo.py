@@ -1,5 +1,5 @@
 from transformers import BertTokenizer
-from reigashi.tokenization_tools import convert
+from reigashi.tokenization_tools import convert_to_token_labels
 import torch
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
@@ -17,4 +17,4 @@ labels = [[2, 4, 'PER']]
 tokens = tokenizer.tokenize(raw_text)
 
 print(tokens)
-print(convert(tokens, labels, raw_text, '##'))
+print(convert_to_token_labels(tokens, labels, raw_text, '##'))
