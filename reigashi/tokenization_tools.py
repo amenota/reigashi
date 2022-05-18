@@ -76,15 +76,46 @@ def convert_to_token_labels(tokens: list, raw_labels: list, raw_text: str, subwo
     return label_list
 
 
-if __name__ == "__main__":
-    # tokenized_text = ['明日', 'は', '田中', 'さん', 'に', '会う']
-    # tokenized_text = ['明日', 'は', '田', '##中', 'さん', 'に', '会う']
-    # labels = [[3, 5, 'PERSON']]
-    # print(convert(tokenized_text, labels, subword="##"))
+def recovery_to_text_labels(tokens: list, labels: list, raw_text: str, subword=None):
+    i, j = 0, 0
+    res = []
+    while i < len(raw_text) and j < len(tokens):
+        c = raw_text[i].lower()
+        new_token = tokens[j]
+        if subword and len(new_token) > len(subword) and re.match(subword, new_token):
+            new_token = new_token.strip(subword)
+        new_label = labels[j]
+        if c == new_token:
+            res.append(new_label)
+            i += 1
+            j += 1
+        elif len(new_token) > 1 and c == new_token[0]:
+            if new_label == "O" or re.match("I-", new_label):
+                res.extend([new_label]*len(new_token))
+            elif re.match("B-", new_label):
+                res.append(new_label)
+                res.extend(["I-"+new_label.split("-")[1]]*(len(new_token)-1))
+            elif re.match("E-", new_label):
+                res.extend(["I-"+new_label.split("-")[1]]*(len(new_token)-1))
+                res.append(new_label)
+            i += len(new_token)
+            j += 1
+        else:
+            if not res:
+                res.append("O")
+            elif re.match("I-", new_label) or re.match("E-", new_label):
+                res.append("I-"+new_label.split("-")[1])
+            else:
+                res.append("O")
+            i += 1
+    assert len(raw_text) == len(res)
+    return res
 
-    # i am tommy.
-    # [[5, 10, 'PER']]
-    tokenized_text = ['i', 'am', 'tom', '##my', '.']
-    labels = [[5, 10, 'PER']]
-    raw_text = "i am tommy."
-    print(convert_to_token_labels(tokenized_text, labels, raw_text=raw_text, subword="##"))
+
+if __name__ == "__main__":
+    raw_text = "yes i*^% galg jl glj-23s"
+    tokens = ['yes', 'i', '*', '^', '%', 'gal', '##g', 'j', '##l', 'g', '##l', '##j', '-', '23', '##s']
+    labels = ['O', 'O', 'O', 'O', 'O', 'B-PER', 'I-PER', 'I-PER', 'I-PER', 'O', 'O', 'O', 'O', 'O', 'O']
+    res = recovery_to_text_labels(tokens, labels, raw_text)
+    print(res)
+
